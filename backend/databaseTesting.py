@@ -394,6 +394,13 @@ def delete(type, conn=None, cursor=None):
         if conn:
             conn.close()
 
+@app.route('/listAccounts', methods=['GET'])
+def list_accounts_endpoint():
+    try:
+        accounts = list_available_accounts()
+        return jsonify({"status": "success", "accounts": accounts}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 
