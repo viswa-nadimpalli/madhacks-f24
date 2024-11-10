@@ -11,7 +11,7 @@ from google.auth.transport.requests import Request
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
 # File where we save the tokens for each account
-TOKEN_DIR = "tokens"
+TOKEN_DIR = "./tokens/"
 
 # Ensure the tokens directory exists
 if not os.path.exists(TOKEN_DIR):
@@ -175,8 +175,8 @@ def main():
         service_for_files = authenticate(accToAccess)
         print_drive_structure_iteratively(service_for_files)
     
-    file_id = input("Enter the Google Drive File ID: ")
-    open_file_in_browser(file_id)
+    # file_id = input("Enter the Google Drive File ID: ")
+    # open_file_in_browser(file_id)
 
 if __name__ == '__main__':
     main()
