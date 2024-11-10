@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
 function createWindow() {
@@ -6,13 +6,22 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
+      nodeIntegration: false, // Best practice for security
+      contextIsolation: true, // Enable context isolation
+      preload: path.join(__dirname, 'preload.js') // Load the preload script
+    }
   });
 
-  win.loadURL('http://localhost:3000'); // Connects to the React dev server for development
+  win.loadURL('http://localhost:3000'); // Load the React app during development
 }
+
+// Handle directory selection
+ipcMain.handle('select-directories', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'multiSelections']
+  });
+  return result.filePaths; // Return the selected directory paths to the renderer process
+});
 
 app.whenReady().then(createWindow);
 

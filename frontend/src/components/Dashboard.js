@@ -1,8 +1,8 @@
-// frontend/src/components/Dashboard.js
-
 import React from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import './Dashboard.css'; // Import CSS for styling
+import './Dashboard.css';
+import LoginButton from './LoginButton';
+import LogoutButton from './LogoutButton';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth0();
@@ -11,23 +11,40 @@ const Dashboard = () => {
     <div className="dashboard-container">
       {/* Sidebar */}
       <div className="sidebar">
-        <h2>Menu</h2>
-        <ul>
-          <li>Your Workspace</li>
-          <li>Google Drive</li>
-          <li>Microsoft OneDrive</li>
-        </ul>
+        <h2>Fileppe</h2>
+        <div className="account-section">
+          <h3>Google</h3>
+          <ul>
+            <li>acct1</li>
+            <li>acct2</li>
+          </ul>
+        </div>
+        <div className="sidebar-buttons">
+          <button className="add-button">ADD</button>
+          <button className="delete-button">DEL</button>
+        </div>
       </div>
 
-      {/* Main content */}
-      <div className="main-content">
-        {isAuthenticated && (
-          <div className="user-info">
+      {/* Main workspace */}
+      <div className="workspace">
+        <h2>Your Workspace</h2>
+        <div className="folder-grid">
+          <div className="folder-item"></div>
+          <div className="folder-item"></div>
+        </div>
+      </div>
+
+      {/* User info */}
+      <div className="user-info">
+        {isAuthenticated ? (
+          <>
             <img src={user.picture} alt="User" className="user-picture" />
-            <span className="user-name">{user.name}</span>
-          </div>
+            <span>{user.name}</span>
+            <LogoutButton />
+          </>
+        ) : (
+          <LoginButton />
         )}
-        <h1>Welcome to Your Dashboard</h1>
       </div>
     </div>
   );

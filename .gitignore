@@ -1,3 +1,4 @@
 credentials.json
 tokens/
 node_modules/
+.venv/

@@ -1,16 +1,18 @@
 import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
-import Auth0Provider from './auth/Auth0Provider';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Auth0 from './auth/Auth0';
 import Dashboard from './components/Dashboard';
 
-function App() {
+const App = () => {
   return (
-    <Auth0Provider>
+    <Auth0>
       <Router>
-        <Dashboard />
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+        </Routes>
       </Router>
-    </Auth0Provider>
+    </Auth0>
   );
-}
+};
 
 export default App;

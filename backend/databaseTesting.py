@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import sqlite3
 import subprocess
 import os
 from google_drive_app import *
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 # Function to add a new account
 def add_new_accountAPI(account_name, conn=None, cursor=None):
@@ -225,9 +227,63 @@ def handle_post_gfiles(name):
         # Return an error response if something goes wrong
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
+@app.route('/test', methods=['GET'])
+def test_route():
+    return jsonify({"status": "success", "message": "The server is running and accessible!"}), 200
+
 @app.route('/', methods=['GET'])
 def home():
     return "Welcome to the Flask server!"
+
+
+def vtableSetup(conn=None, cursor=None):
+    if conn is None or cursor is None:
+        conn = sqlite3.connect('my_database.db')
+        cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS vtable (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            parent TEXT,
+            source TEXT,
+            type TEXT,
+            iid TEXT
+        )
+    ''')  # types: FILE, FOLDER
+    conn.commit()
+    conn.close()
+
+# Route to add a new row to vtable
+@app.route('/add_vtable_entry', methods=['POST'])
+def add_vtable_entry():
+    vtableSetup()
+    
+    data = request.get_json()
+
+    # Validate the request payload
+    required_keys = ['parent', 'source', 'type', 'iid']
+    if not all(key in data for key in required_keys):
+        return jsonify({"error": "Missing one or more required fields: parent, source, type, iid"}), 400
+
+    try:
+        # Connect to the database and insert the new entry
+        conn = sqlite3.connect('my_database.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO vtable (parent, source, type, iid)
+            VALUES (?, ?, ?, ?)
+        ''', (data['parent'], data['source'], data['type'], data['iid']))
+        conn.commit()
+        entry_id = cursor.lastrowid  # Get the auto-incremented ID of the inserted row
+        conn.close()
+
+        # Return a success response with the ID of the new entry
+        return jsonify({"status": "success", "id": entry_id, "message": "Entry added successfully"}), 201
+
+    except sqlite3.Error as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
