@@ -239,11 +239,14 @@ def vtableSetup(conn=None, cursor=None):
         CREATE TABLE IF NOT EXISTS vtable (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             parent TEXT,
-            source TEXT,
+            name TEXT,
+            source INTEGER,
             type TEXT,
             iid TEXT
         )
     ''')  # types: FILE, FOLDER
+    
+
     conn.commit()
     conn.close()
 
@@ -255,18 +258,18 @@ def add_vtable_entry():
     data = request.get_json()
 
     # Validate the request payload
-    required_keys = ['parent', 'source', 'type', 'iid']
+    required_keys = ['parent', 'name', 'source', 'type', 'iid']
     if not all(key in data for key in required_keys):
-        return jsonify({"error": "Missing one or more required fields: parent, source, type, iid"}), 400
+        return jsonify({"error": "Missing one or more required fields: parent, name, source, type, iid"}), 400
 
     try:
         # Connect to the database and insert the new entry
         conn = sqlite3.connect('my_database.db')
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO vtable (parent, source, type, iid)
-            VALUES (?, ?, ?, ?)
-        ''', (data['parent'], data['source'], data['type'], data['iid']))
+            INSERT INTO vtable (parent, name, source, type, iid)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (data['parent'], data['name'], data['source'], data['type'], data['iid']))
         conn.commit()
         entry_id = cursor.lastrowid  # Get the auto-incremented ID of the inserted row
         conn.close()
