@@ -1,0 +1,17 @@
+{
+  "name": "madhacks-f24",
+  "version": "1.0.0",
+  "description": "Mfw im mad and i hack:",
+  "main": "main.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "electron": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}
