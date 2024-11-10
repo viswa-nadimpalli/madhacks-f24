@@ -1,5 +1,5 @@
 import requests
-import os
+
 # URL of the endpoint
 url = 'http://127.0.0.1:5000/gooPaths/hi'
 
@@ -29,4 +29,3 @@ print("Response JSON:", response.json())
 
 
 
-print(f"Is directory? {os.path.isdir('/Users/kanishk/Downloads/Kanishk/final.csv')}")

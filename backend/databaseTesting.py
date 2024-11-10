@@ -79,19 +79,20 @@ def print_and_store_drive_structure(service, cursor, parent_id='root', indent=0,
             if item['mimeType'] == 'application/vnd.google-apps.folder':
                 print_and_store_drive_structure(service, cursor, parent_id=item['id'], indent=indent + 1, account=account)
 
-# Function to get files and directories recursively
+
 def getFiles(filePaths, conn=None, cursor=None):
     if conn is None or cursor is None:
         conn = sqlite3.connect('my_database.db')
         cursor = conn.cursor()
 
-    # Update table schema
+    # Update table schema to include filepath
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS files (
             inode INTEGER PRIMARY KEY,
             parent_inode INTEGER,
             filename TEXT,
-            type TEXT
+            type TEXT,
+            filepath TEXT
         )
     ''')  # types: FILE, FOLDER
 
@@ -99,10 +100,8 @@ def getFiles(filePaths, conn=None, cursor=None):
         if not os.path.exists(filepath1):
             continue
 
-        # Get inode of the parent directory
+        # Set parent_inode to NULL for the first level
         parent_inode = None
-        if filepath1 != '/':
-            parent_inode = os.stat(filepath1).st_ino
 
         # Process files in the directory (non-directories)
         fileData = subprocess.run(
@@ -114,21 +113,22 @@ def getFiles(filePaths, conn=None, cursor=None):
             fileData[n] = fileData[n].lstrip().split(' ', maxsplit=1)
             if fileData[n] != ['']:
                 inode, filename = fileData[n]
+                filepath = os.path.join(filepath1, filename)
                 cursor.execute("SELECT 1 FROM files WHERE inode = ?", (inode,))
                 row = cursor.fetchone()
                 if row:
                     cursor.execute("""
                         UPDATE files
-                        SET parent_inode = ?, filename = ?, type = ?
+                        SET parent_inode = ?, filename = ?, type = ?, filepath = ?
                         WHERE inode = ?
-                    """, (parent_inode, filename, "FILE", inode))
+                    """, (parent_inode, filename, "FILE", filepath, inode))
                 else:
                     cursor.execute("""
-                        INSERT INTO files (inode, parent_inode, filename, type)
-                        VALUES (?, ?, ?, ?)
-                    """, (inode, parent_inode, filename, "FILE"))
+                        INSERT INTO files (inode, parent_inode, filename, type, filepath)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (inode, parent_inode, filename, "FILE", filepath))
 
-        # Process directories recursively
+        # Process directories at first level
         fileDataDirectories = subprocess.run(
             f"ls -1p '{filepath1}' | grep '/$' | grep -v '.app/$'",
             capture_output=True, text=True, shell=True
@@ -144,21 +144,19 @@ def getFiles(filePaths, conn=None, cursor=None):
                 if row:
                     cursor.execute("""
                         UPDATE files
-                        SET parent_inode = ?, filename = ?, type = ?
+                        SET parent_inode = ?, filename = ?, type = ?, filepath = ?
                         WHERE inode = ?
-                    """, (parent_inode, fileDataDirectories[index], "FOLDER", dir_inode))
+                    """, (parent_inode, fileDataDirectories[index], "FOLDER", dir_path, dir_inode))
                 else:
                     cursor.execute("""
-                        INSERT INTO files (inode, parent_inode, filename, type)
-                        VALUES (?, ?, ?, ?)
-                    """, (dir_inode, parent_inode, fileDataDirectories[index], "FOLDER"))
-
-            # Recurse into subdirectories
-            getFiles([os.path.join(filepath1, d) for d in fileDataDirectories], conn, cursor)
+                        INSERT INTO files (inode, parent_inode, filename, type, filepath)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (dir_inode, parent_inode, fileDataDirectories[index], "FOLDER", dir_path))
 
     conn.commit()
     if conn and not filePaths:
         conn.close()
+
 
 def getFilesGoog(conn=None, cursor=None):
     # Ensure the tokens directory exists
@@ -340,6 +338,64 @@ def getDirLocal(type, id):
         except sqlite3.Error as e:
             conn.close()
             return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+@app.route('/delDir/<type>', methods=['DELETE'])
+def delete(type, conn=None, cursor=None):
+    try:
+        id = request.args.get('id')
+        if not id:
+            return jsonify({"error": "ID query parameter is required"}), 400
+
+
+        if conn is None or cursor is None:
+            conn = sqlite3.connect('my_database.db')
+            cursor = conn.cursor()
+
+        if type == '1':  # Case for local files
+            # Delete from `files` where the filepath matches the given `id`
+            cursor.execute("""
+                DELETE FROM files
+                WHERE filepath LIKE ?
+            """, (f'{id}%',))
+
+            # Delete from `vtable` where the source matches `1-<id>`
+            cursor.execute("""
+                DELETE FROM vtable
+                WHERE source LIKE ?
+            """, (f'1-{id}%',))
+
+        elif type == '2':  # Case for Google files
+            # Delete from `goofiles` where the account matches the given `id`
+            cursor.execute("""
+                DELETE FROM goofiles
+                WHERE account = ?
+            """, (id,))
+
+            # Delete from `vtable` where the source matches `2-<id>`
+            cursor.execute("""
+                DELETE FROM vtable
+                WHERE source LIKE ?
+            """, (f'2-{id}%',))
+
+        else:  # Default case for other deletions
+            cursor.execute("""
+                DELETE FROM vtable
+                WHERE parent = ? AND source = '3'
+            """, (id,))
+
+        conn.commit()
+        return jsonify({"status": "success", "message": f"Entries deleted for type {type} and id {id}."}), 200
+
+    except sqlite3.Error as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+
 
 
 if __name__ == '__main__':
