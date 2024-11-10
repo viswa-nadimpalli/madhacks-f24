@@ -403,6 +403,41 @@ def list_accounts_endpoint():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@app.route('/openFile/<type>/<file_id>', methods=['POST'])
+def open_file_endpoint(type, file_id):
+    if type == '2':  # For Google Drive files
+        try:
+            url = open_file_in_browser(file_id)
+            return jsonify({"status": "success", "message": f"File opened in browser: {url}"}), 200
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 500
+    elif type == '1':  # For local storage using inode
+        try:
+            # Connect to the SQLite database
+            conn = sqlite3.connect('my_database.db')
+            cursor = conn.cursor()
+
+            # Query to get the file path and filename from the inode
+            cursor.execute("SELECT filepath, filename FROM files WHERE inode = ?", (file_id,))
+            result = cursor.fetchone()
+            conn.close()
+
+            if result:
+                filepath, filename = result
+                if os.path.exists(filepath):
+                    webbrowser.open(f'file://{filepath}')
+                    print(f"Opened file: {filepath}")
+                    return jsonify({"status": "success", "message": f"Local file opened: {filename}"}), 200
+                else:
+                    return jsonify({"status": "error", "message": "File not found on disk"}), 404
+            else:
+                return jsonify({"status": "error", "message": "Inode not found in the database"}), 404
+        except sqlite3.Error as e:
+            return jsonify({"status": "error", "message": f"Database error: {str(e)}"}), 500
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 500
+    else:
+        return jsonify({"status": "error", "message": "Invalid type provided"}), 400
 
 
 if __name__ == '__main__':
