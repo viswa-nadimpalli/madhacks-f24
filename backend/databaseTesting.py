@@ -279,5 +279,65 @@ def add_vtable_entry():
     except Exception as e:
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
+@app.route('/getDir/<type>/<id>', methods=['GET'])
+def getDirLocal(type, id):
+    conn = sqlite3.connect('my_database.db')
+    cursor = conn.cursor()
+
+    if type == '1':
+        try:
+            # Query to get all inode and filename where the parent inode matches the provided id
+            cursor.execute('''
+                SELECT inode, filename FROM files WHERE parent_inode = ?
+            ''', (id,))
+            rows = cursor.fetchall()
+
+            # Format the result as a list of dictionaries
+            result = [{"inode": row[0], "filename": row[1]} for row in rows]
+
+            conn.close()
+            return jsonify({"status": "success", "data": result}), 200
+
+        except sqlite3.Error as e:
+            conn.close()
+            return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+    elif type == '2':
+        try:
+            # Query to get all inode and filename where the parent inode matches the provided id
+            cursor.execute('''
+                SELECT Gideon, Name FROM goofiles WHERE Parent = ?
+            ''', (id,))
+            rows = cursor.fetchall()
+
+            # Format the result as a list of dictionaries
+            result = [{"Gideon": row[0], "Name": row[1]} for row in rows]
+
+            conn.close()
+            return jsonify({"status": "success", "data": result}), 200
+
+        except sqlite3.Error as e:
+            conn.close()
+            return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+    else:
+        try:
+            # Query to get all inode and filename where the parent inode matches the provided id
+            cursor.execute('''
+                SELECT id, source FROM vtable WHERE Parent = ?
+            ''', (id,))
+            rows = cursor.fetchall()
+
+            # Format the result as a list of dictionaries
+            result = [{"id": row[0], "source": row[1]} for row in rows]
+
+            conn.close()
+            return jsonify({"status": "success", "data": result}), 200
+
+        except sqlite3.Error as e:
+            conn.close()
+            return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
