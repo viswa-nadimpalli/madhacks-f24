@@ -85,42 +85,76 @@ def getFiles(filePaths, conn=None, cursor=None):
         conn = sqlite3.connect('my_database.db')
         cursor = conn.cursor()
 
+    # Update table schema
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS files (
             inode INTEGER PRIMARY KEY,
-            filepath TEXT,
+            parent_inode INTEGER,
             filename TEXT,
             type TEXT
         )
-    ''') #types FILE FOLDER
+    ''')  # types: FILE, FOLDER
 
     for filepath1 in filePaths:
         if not os.path.exists(filepath1):
             continue
 
+        # Get inode of the parent directory
+        parent_inode = None
+        if filepath1 != '/':
+            parent_inode = os.stat(filepath1).st_ino
+
         # Process files in the directory (non-directories)
-        fileData = subprocess.run(f"ls -i1p '{filepath1}' | grep -v /", capture_output=True, text=True, shell=True).stdout.split('\n')
+        fileData = subprocess.run(
+            f"ls -i1p '{filepath1}' | grep -v /", 
+            capture_output=True, text=True, shell=True
+        ).stdout.split('\n')
+        
         for n in range(len(fileData)):
-            fileData[n] = fileData[n].lstrip()
-            fileData[n] = fileData[n].split(' ', maxsplit=1)
+            fileData[n] = fileData[n].lstrip().split(' ', maxsplit=1)
             if fileData[n] != ['']:
-                cursor.execute("SELECT 1 FROM files WHERE inode = ?", (fileData[n][0],))
+                inode, filename = fileData[n]
+                cursor.execute("SELECT 1 FROM files WHERE inode = ?", (inode,))
                 row = cursor.fetchone()
                 if row:
-                    cursor.execute("""UPDATE files
-                                     SET filepath = ?, filename = ?, type = ?
-                                     WHERE inode = ?
-                                     """, (filepath1, fileData[n][1], "FOLDER" if os.path.isdir(filepath1) else "FILE", fileData[n][0]))
+                    cursor.execute("""
+                        UPDATE files
+                        SET parent_inode = ?, filename = ?, type = ?
+                        WHERE inode = ?
+                    """, (parent_inode, filename, "FILE", inode))
                 else:
-                    cursor.execute("INSERT INTO files (inode, filepath, filename, type) VALUES (?, ?, ?, ?)", (fileData[n][0], filepath1, fileData[n][1], "FOLDER" if not os.path.isdir(filepath1) else "FILE"))
+                    cursor.execute("""
+                        INSERT INTO files (inode, parent_inode, filename, type)
+                        VALUES (?, ?, ?, ?)
+                    """, (inode, parent_inode, filename, "FILE"))
 
         # Process directories recursively
-        fileDataDirectories = subprocess.run(f"ls -1p '{filepath1}' | grep '/$' | grep -v '.app/$'", capture_output=True, text=True, shell=True).stdout.split('\n')
+        fileDataDirectories = subprocess.run(
+            f"ls -1p '{filepath1}' | grep '/$' | grep -v '.app/$'",
+            capture_output=True, text=True, shell=True
+        ).stdout.split('\n')
+
         fileDataDirectories = [d.rstrip('/') for d in fileDataDirectories if d]
         if fileDataDirectories:
             for index in range(len(fileDataDirectories)):
-                fileDataDirectories[index] = os.path.join(filepath1, fileDataDirectories[index])
-            getFiles(fileDataDirectories, conn, cursor)
+                dir_path = os.path.join(filepath1, fileDataDirectories[index])
+                dir_inode = os.stat(dir_path).st_ino
+                cursor.execute("SELECT 1 FROM files WHERE inode = ?", (dir_inode,))
+                row = cursor.fetchone()
+                if row:
+                    cursor.execute("""
+                        UPDATE files
+                        SET parent_inode = ?, filename = ?, type = ?
+                        WHERE inode = ?
+                    """, (parent_inode, fileDataDirectories[index], "FOLDER", dir_inode))
+                else:
+                    cursor.execute("""
+                        INSERT INTO files (inode, parent_inode, filename, type)
+                        VALUES (?, ?, ?, ?)
+                    """, (dir_inode, parent_inode, fileDataDirectories[index], "FOLDER"))
+
+            # Recurse into subdirectories
+            getFiles([os.path.join(filepath1, d) for d in fileDataDirectories], conn, cursor)
 
     conn.commit()
     if conn and not filePaths:
