@@ -7,18 +7,37 @@
 /* Sidebar */
 .sidebar {
   width: 250px;
-  background-color: #2c3e50;
-  color: #ecf0f1;
+  background-color: #3c3c3c;
+  color: #d1d1d1;
   padding: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
+.account-section h3, .sidebar h2 {
+  color: #ffffff;
+}
+
+.sidebar-buttons button {
+  background-color: #5a5a5a;
+  color: #ffffff;
+  border: none;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.sidebar-buttons button:hover {
+  background-color: #777777;
+}
+
 /* Main workspace */
 .workspace {
   flex-grow: 1;
-  background-color: #ecf0f1;
+  background-color: #e6e6e6;
   padding: 20px;
 }
 
@@ -31,7 +50,7 @@
 .folder-item {
   width: 80px;
   height: 80px;
-  background-color: #bdc3c7;
+  background-color: #b0b0b0;
   border: 2px solid #7f8c8d;
   border-radius: 5px;
 }
@@ -44,11 +63,51 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #2c3e50;
+  color: #3c3c3c;
 }
 
 .user-picture {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+}
+
+.back-button-container {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+}
+
+.styled-button {
+  background-color: #5a5a5a;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.styled-button:hover {
+  background-color: #777777;
+}
+
+.back-button-container {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+}
+
+.styled-button {
+  background-color: #5a5a5a;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.styled-button:hover {
+  background-color: #777777;
 }

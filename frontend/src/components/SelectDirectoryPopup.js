@@ -5,12 +5,10 @@ const SelectDirectoryPopup = () => {
 
   const handleSelectDirectories = async () => {
     try {
-      // Use Electron API to open the dialog and select directories
       const selectedDirectories = await window.electronAPI.selectDirectories();
       if (selectedDirectories && selectedDirectories.length > 0) {
         setDirectories(selectedDirectories);
 
-        // Send the selected directories to the Flask backend
         try {
           const response = await fetch('http://127.0.0.1:5000/LocalPaths', {
             method: 'POST',
@@ -25,15 +23,12 @@ const SelectDirectoryPopup = () => {
           }
 
           const data = await response.json();
-          console.log('Success:', data);
           alert('Directories sent to backend successfully!');
         } catch (error) {
-          console.error('Error sending directories to backend:', error);
           alert('Failed to send directories to the backend. Check the console for details.');
         }
       }
     } catch (error) {
-      console.error('Error selecting directories:', error);
       alert('An error occurred while selecting directories.');
     }
   };
