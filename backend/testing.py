@@ -1,7 +1,6 @@
 import subprocess
 
-filepath = "/Users/rishinatraj/Downloads"
-# filename = "Cutler_combined.pdf"
+filepath = "/Users/kanishk/Downloads"
 fileData = subprocess.run(f"ls -i1p '{filepath}' | grep -v /", capture_output=True, text=True, shell=True).stdout.split('\n')
 for(n) in range(len(fileData)):
     fileData[n]=fileData[n].lstrip()
